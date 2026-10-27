@@ -1,0 +1,59 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.29/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.29",
+  "version": "1.0.0",
+  "id": "53dcad74-37db-5616-9ed8-6aa28ed7ecdd",
+  "developer": {
+    "name": "Elastic",
+    "websiteUrl": "https://www.elastic.co",
+    "privacyUrl": "https://www.elastic.co/trust/privacy",
+    "termsOfUseUrl": "https://www.elastic.co/legal/customer-agreements"
+  },
+  "name": {
+    "short": "Elastic",
+    "full": "Elastic for Copilot Cowork"
+  },
+  "description": {
+    "short": "Skills and docs for building with Elasticsearch, Kibana, and Elastic Cloud.",
+    "full": "Elastic's official Copilot Cowork plugin for the Elastic platform. Includes agent skills for Elastic Cloud (onboarding, project provisioning), Elasticsearch (ES|QL, ingest, index design, reindexing, search relevance, query optimization, cluster health, anomaly detection, onboarding) and Kibana (dashboards, alerting rules, workflows, Agent Builder, anomaly detection), plus the Elastic Docs MCP server for searching and retrieving Elastic documentation."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0B64DD",
+  "agentSkills": [
+    { "folder": "./skills/cloud-onboarding" },
+    { "folder": "./skills/cloud-provisioning" },
+    { "folder": "./skills/elasticsearch-anomaly-detection" },
+    { "folder": "./skills/elasticsearch-anomaly-detection-explainer" },
+    { "folder": "./skills/elasticsearch-cluster-health" },
+    { "folder": "./skills/elasticsearch-esql" },
+    { "folder": "./skills/elasticsearch-index-design" },
+    { "folder": "./skills/elasticsearch-ingest" },
+    { "folder": "./skills/elasticsearch-onboarding" },
+    { "folder": "./skills/elasticsearch-query-optimization" },
+    { "folder": "./skills/elasticsearch-reindex" },
+    { "folder": "./skills/elasticsearch-search-relevance" },
+    { "folder": "./skills/kibana-agent-builder" },
+    { "folder": "./skills/kibana-alerting-rules" },
+    { "folder": "./skills/kibana-anomaly-detection" },
+    { "folder": "./skills/kibana-dashboards" },
+    { "folder": "./skills/kibana-workflows" }
+  ],
+  "agentConnectors": [
+    {
+      "id": "elastic-docs",
+      "displayName": "Elastic Docs",
+      "description": "Search, retrieve, and analyze Elastic product documentation published at elastic.co/docs (version 9 and later).",
+      "toolSource": {
+        "remoteMcpServer": {
+          "mcpServerUrl": "https://www.elastic.co/docs/_mcp/",
+          "authorization": {
+            "type": "None"
+          }
+        }
+      }
+    }
+  ]
+}
