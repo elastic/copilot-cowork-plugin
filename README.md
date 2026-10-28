@@ -97,3 +97,7 @@ CLI alternative (sideloads into your account only):
 atk auth login m365
 atk install --file-path ./appPackage/build/appPackage.dev.zip --scope Personal
 ```
+
+## License
+
+Licensed under the [Apache License, Version 2.0](./LICENSE). See [NOTICE.txt](./NOTICE.txt).
