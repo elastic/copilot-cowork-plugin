@@ -54,10 +54,10 @@ jobs:
         run: npm run build
 
       - name: Validate manifest
-        run: atk validate --manifest-file ./appPackage/manifest.json --env dev
+        run: atk validate --manifest-file ./appPackage/manifest.json
 
       - name: Package
-        run: atk package --env dev
+        run: atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build
 
       - name: Upload package artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

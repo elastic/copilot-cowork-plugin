@@ -99,11 +99,11 @@ jobs:
 
       - name: Validate manifest
         if: steps.release-check.outputs.exists == 'false'
-        run: atk validate --manifest-file ./appPackage/manifest.json --env dev
+        run: atk validate --manifest-file ./appPackage/manifest.json
 
       - name: Package
         if: steps.release-check.outputs.exists == 'false'
-        run: atk package --env dev
+        run: atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build
 
       - name: Rename package
         if: steps.release-check.outputs.exists == 'false'
