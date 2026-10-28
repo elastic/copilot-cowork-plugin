@@ -48,10 +48,12 @@ export interface BuiltSkill {
 }
 
 /**
- * Read and return the `name` field from a SKILL.md's YAML frontmatter.
- * Throws if no `name` field is found.
+ * Read and return all YAML frontmatter fields from a SKILL.md file.
+ * Strips BOM, normalizes CRLF, and throws if no frontmatter block is found.
  */
-export function readSkillName(skillMdPath: string): string {
+export function readSkillFrontmatter(
+  skillMdPath: string,
+): Record<string, unknown> {
   const raw = readFileSync(skillMdPath, 'utf-8');
   // Strip BOM and normalize CRLF
   const normalized = raw.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
@@ -60,7 +62,15 @@ export function readSkillName(skillMdPath: string): string {
   if (!match) {
     throw new Error(`No YAML frontmatter found in SKILL.md: ${skillMdPath}`);
   }
-  const fm = parseYaml(match[1]) as Record<string, unknown>;
+  return (parseYaml(match[1]) as Record<string, unknown>) ?? {};
+}
+
+/**
+ * Read and return the `name` field from a SKILL.md's YAML frontmatter.
+ * Throws if no `name` field is found.
+ */
+export function readSkillName(skillMdPath: string): string {
+  const fm = readSkillFrontmatter(skillMdPath);
   if (!fm || typeof fm.name !== 'string' || fm.name.trim() === '') {
     throw new Error(
       `SKILL.md has no 'name' field in frontmatter: ${skillMdPath}`,
