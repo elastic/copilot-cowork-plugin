@@ -14,3 +14,7 @@ node_modules/
 
 # generated files
 appPackage/.generated
+
+
+# jetbrains
+.idea
