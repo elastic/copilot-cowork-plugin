@@ -57,7 +57,8 @@ Requires Node.js 24+ and `@microsoft/m365agentstoolkit-cli` (`atk`) ≥ 1.1.12 (
 `npm install -g @microsoft/m365agentstoolkit-cli`).
 
 ```sh
-npm test          # lint + unit tests (also builds)
+npm run lint      # ESLint + Prettier check
+npm test          # unit tests (also builds)
 npm run package   # build + atk schema validation + zip → appPackage/build/appPackage.dev.zip
 ```
 

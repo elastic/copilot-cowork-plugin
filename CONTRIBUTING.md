@@ -22,7 +22,7 @@ npm install
 # Run checks locally (same as CI)
 npm run lint
 npm test
-atk validate --manifest-file ./appPackage/manifest.json --env dev
+atk validate --manifest-file ./appPackage/manifest.json
 
 # Build and package the app
 npm run package
@@ -33,7 +33,7 @@ npm run package
 1. Create a branch from `main` (use `origin` or a personal fork).
 2. Make your changes.
 3. Ensure `npm run lint`, `npm test`, and
-   `atk validate --manifest-file ./appPackage/manifest.json --env dev`
+   `atk validate --manifest-file ./appPackage/manifest.json`
    all pass.
 4. Open a PR against `main`.
 
