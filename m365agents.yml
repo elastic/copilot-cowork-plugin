@@ -1,4 +1,4 @@
 # yaml-language-server: $schema=https://aka.ms/m365-agents-toolkits/v1.12/yaml.schema.json
 # atk package requires this file to be present. Provision and publish are not used;
-# packaging is done via Partner Center. See RELEASING.md.
+# publishing is done via Partner Center. See RELEASING.md.
 version: v1.12

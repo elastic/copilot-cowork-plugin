@@ -29,6 +29,9 @@ This plugin follows [semver](https://semver.org/):
 The `manifestVersion` field (Teams schema version, currently `"1.29"`) is separate
 from `version` and is not bumped during a release.
 
+> **Note:** `appPackage/manifest.json` starts at `1.0.0` with no git tags, so the first
+> release must be `1.0.1`, `1.1.0`, or `2.0.0` — not `1.0.0` itself.
+
 ## Changelog
 
 The release workflow inserts `## [{version}] - {date}` immediately below the
@@ -46,7 +49,7 @@ tenant):
 ### 1. Download the release asset
 
 ```sh
-gh release download v{version} -p '*.zip'
+gh release download v{version} -p '*.zip' -R elastic/copilot-cowork-plugin
 ```
 
 ### 2. Sign in to M365
@@ -74,7 +77,7 @@ repeat from step 1.
 ### 4. Sideload and smoke-test
 
 ```sh
-atk install
+atk install --file-path ./elastic-copilot-cowork-{version}.zip --scope Personal
 ```
 
 Sideload the package to the test tenant and smoke-test at least 3 skills plus the

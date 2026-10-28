@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node scripts/build-package.ts",
     "pretest": "npm run build",
-    "package": "npm run build && atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build",
+    "package": "npm run build && atk validate --manifest-file ./appPackage/manifest.json && atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build",
     "test": "node --experimental-vm-modules --no-warnings node_modules/.bin/jest",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write ."

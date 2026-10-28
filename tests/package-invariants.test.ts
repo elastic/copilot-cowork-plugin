@@ -21,7 +21,11 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from '@jest/globals';
-import { readSkillName, readSkillFrontmatter } from '../scripts/build-package';
+import {
+  readSkillName,
+  readSkillFrontmatter,
+  CATEGORIES,
+} from '../scripts/build-package';
 import { pngSize } from './helpers/png-size';
 
 // ---------------------------------------------------------------------------
@@ -281,10 +285,10 @@ describe('package invariants', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Connectors: https URL, unique ids, mcpToolDescription.file constraints
+  // Connectors: https URL, unique ids
   // -------------------------------------------------------------------------
 
-  it('connectors use https, have unique ids, and any mcpToolDescription file exists without a leading ./', () => {
+  it('connectors use https and have unique ids', () => {
     const connectors = manifest.agentConnectors ?? [];
     const failures: string[] = [];
     const seenIds = new Set<string>();
@@ -314,5 +318,30 @@ describe('package invariants', () => {
   it('agentConnectors has at most 10 entries', () => {
     const count = (manifest.agentConnectors ?? []).length;
     expect(count).toBeLessThanOrEqual(10);
+  });
+
+  // -------------------------------------------------------------------------
+  // Skills lower bound: every category contributes at least one skill
+  // -------------------------------------------------------------------------
+
+  it('every CATEGORIES entry contributes at least one built skill', () => {
+    const skillsDir = join(repoRoot, 'skills');
+    const failures: string[] = [];
+    for (const category of CATEGORIES) {
+      const catDir = join(skillsDir, category);
+      if (!existsSync(catDir)) {
+        failures.push(`category '${category}': source directory not found`);
+        continue;
+      }
+      const hasSkill = readdirSync(catDir, { withFileTypes: true }).some(
+        (e) => e.isDirectory() && existsSync(join(catDir, e.name, 'SKILL.md')),
+      );
+      if (!hasSkill) {
+        failures.push(
+          `category '${category}': no skills found in ${catDir} (empty or mis-synced)`,
+        );
+      }
+    }
+    expect(failures).toEqual([]);
   });
 });

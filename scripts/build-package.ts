@@ -37,9 +37,22 @@ export const CATEGORIES: readonly string[] = [
   'kibana',
 ];
 
+/**
+ * Frontmatter names of skills to omit from the built package.
+ * Use this when the 20-skill Cowork cap is hit or a skill is broken in Cowork.
+ * Add the skill's `name` frontmatter value to exclude it from both
+ * `appPackage/skills/` and the `agentSkills[]` array in `manifest.json`.
+ */
+export const EXCLUDED_SKILLS: readonly string[] = [];
+
 export interface BuildOptions {
   root: string;
   categories?: readonly string[];
+  /**
+   * Frontmatter names of skills to exclude from the build.
+   * Defaults to `EXCLUDED_SKILLS`.
+   */
+  excludedSkills?: readonly string[];
 }
 
 export interface BuiltSkill {
@@ -102,6 +115,7 @@ function assertNoSymlinks(dir: string): void {
 export function buildPackage(opts: BuildOptions): BuiltSkill[] {
   const { root } = opts;
   const categories = opts.categories ?? CATEGORIES;
+  const excludedSkills = opts.excludedSkills ?? EXCLUDED_SKILLS;
   const skillsRoot = join(root, 'skills');
   const outRoot = join(root, 'appPackage', 'skills');
   const manifestPath = join(root, 'appPackage', 'manifest.json');
@@ -125,6 +139,7 @@ export function buildPackage(opts: BuildOptions): BuiltSkill[] {
       assertNoSymlinks(skillDir);
 
       const name = readSkillName(skillMdPath);
+      if (excludedSkills.includes(name)) continue;
       const source = relative(root, skillDir).replace(/\\/g, '/');
 
       // Check for duplicate names
@@ -173,7 +188,7 @@ const isMain =
   process.argv[1] === fileURLToPath(import.meta.url);
 
 if (isMain) {
-  const repoRoot = new URL('..', import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL('..', import.meta.url));
   const skills = buildPackage({ root: repoRoot });
   for (const skill of skills) {
     console.log(`${skill.name}  (${skill.source})`);

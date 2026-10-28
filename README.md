@@ -14,7 +14,7 @@ skills/                           # Source skills, nested by category (synced fr
   elasticsearch/<skill-name>/SKILL.md
   kibana/<skill-name>/SKILL.md
 scripts/                          # Build scripts (Node.js)
-tests/                            # Jest tests for build scripts
+tests/                            # Jest tests for build scripts and package invariants
 appPackage/                       # Everything here ships in the zip, at the zip root
   manifest.json                   # M365 manifest: agentSkills[] + agentConnectors[]
   color.png                       # 192x192 full-colour icon
@@ -26,7 +26,7 @@ appPackage/                       # Everything here ships in the zip, at the zip
 
 Cowork caps `agentSkills` at **20 per plugin** (`maxItems: 20` in the v1.28, v1.29 and devPreview
 schemas). `elastic/agent-skills` has more than that, so this plugin carries only the platform
-skills — `skills/cloud/*`, `skills/elasticsearch/*` and `skills/kibana/*` (17). Security and
+skills — `skills/cloud/*`, `skills/elasticsearch/*` and `skills/kibana/*`. Security and
 Observability skills are expected to ship as separate per-solution plugins.
 
 ## Skills
@@ -44,6 +44,19 @@ Don't edit files under `appPackage/skills/` or `skills/` by hand; fix skills ups
 `elastic/agent-skills`.
 
 Per-skill limits: ≤ 20 companion files, ≤ 5 MB per file, ≤ 10 MB total, no hidden files.
+
+### Excluding a skill
+
+If the 20-skill Cowork cap is reached or a skill is broken in Cowork, add its
+frontmatter `name` value to `EXCLUDED_SKILLS` in `scripts/build-package.ts`:
+
+```ts
+export const EXCLUDED_SKILLS: readonly string[] = ['skill-name-to-skip'];
+```
+
+The excluded skill is omitted from `appPackage/skills/` and from `agentSkills[]` in
+`manifest.json` on the next `npm run build`. Remove the entry once the issue is resolved
+upstream.
 
 ## MCP server
 

@@ -227,6 +227,27 @@ describe('buildPackage', () => {
       existsSync(join(root, 'appPackage/skills/cloud-onboarding/SKILL.md')),
     ).toBe(true);
   });
+
+  it('excludedSkills: excluded skill absent from appPackage/skills and agentSkills[]', () => {
+    const root = makeFixture({
+      skills: {
+        'skills/cloud/a/SKILL.md': skillMd('cloud-a'),
+        'skills/cloud/b/SKILL.md': skillMd('cloud-b'),
+      },
+    });
+    const result = buildPackage({
+      root,
+      categories: ['cloud'],
+      excludedSkills: ['cloud-b'],
+    });
+    expect(result.find((s) => s.name === 'cloud-b')).toBeUndefined();
+    expect(existsSync(join(root, 'appPackage/skills/cloud-b'))).toBe(false);
+    expect(existsSync(join(root, 'appPackage/skills/cloud-a'))).toBe(true);
+    const manifest = JSON.parse(
+      readFileSync(join(root, 'appPackage/manifest.json'), 'utf-8'),
+    );
+    expect(manifest.agentSkills).toEqual([{ folder: './skills/cloud-a' }]);
+  });
 });
 
 describe('readSkillName', () => {

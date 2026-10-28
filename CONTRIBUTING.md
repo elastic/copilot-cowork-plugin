@@ -63,9 +63,13 @@ Skills are **not authored in this repo**. The workflow is:
 
 1. Draft in [`elastic/agent-skills-sandbox`](https://github.com/elastic/agent-skills-sandbox).
 2. Promote to [`elastic/agent-skills`](https://github.com/elastic/agent-skills) once reviewed.
-3. On each `agent-skills` release, skills are synced here automatically.
+3. On each `agent-skills` release, skills are synced here automatically (once the
+   `copilot-cowork` sync target in `agent-skills` is merged and its deploy token can
+   reach this repo).
 
-If you find a bug in a skill, fix it upstream in `agent-skills-sandbox`.
+If you find a bug in a skill, file it upstream in
+[`elastic/agent-skills`](https://github.com/elastic/agent-skills). Do not edit files
+under `skills/` in this repo.
 
 ## Regenerating the skills list
 
