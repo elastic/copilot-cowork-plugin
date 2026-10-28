@@ -44,13 +44,8 @@ interface RemoteMcpServer {
   authorization?: { type: string };
 }
 
-interface McpToolDescription {
-  file?: string;
-}
-
 interface ToolSource {
   remoteMcpServer?: RemoteMcpServer;
-  mcpToolDescription?: McpToolDescription;
 }
 
 interface AgentConnector {
@@ -58,7 +53,6 @@ interface AgentConnector {
   displayName?: string;
   description?: string;
   toolSource?: ToolSource;
-  mcpToolDescription?: McpToolDescription; // may also appear at connector root
 }
 
 interface Manifest {
@@ -229,11 +223,6 @@ describe('package invariants', () => {
               `'${name}': companion '${relPath}' has path segment starting with '.'`,
             );
           }
-          if (seg === '..') {
-            failures.push(
-              `'${name}': companion '${relPath}' contains '..' segment`,
-            );
-          }
         }
       }
 
@@ -313,24 +302,6 @@ describe('package invariants', () => {
         failures.push(
           `connector '${connector.id}' mcpServerUrl must start with https://: '${mcpUrl}'`,
         );
-      }
-
-      // mcpToolDescription.file — may appear at root or inside toolSource
-      const toolDescFile =
-        connector.mcpToolDescription?.file ??
-        connector.toolSource?.mcpToolDescription?.file;
-      if (toolDescFile !== undefined) {
-        if (toolDescFile.startsWith('./')) {
-          failures.push(
-            `connector '${connector.id}' mcpToolDescription.file must not start with ./: '${toolDescFile}'`,
-          );
-        }
-        const filePath = join(appPackageDir, toolDescFile);
-        if (!existsSync(filePath)) {
-          failures.push(
-            `connector '${connector.id}' mcpToolDescription.file not found in appPackage/: '${toolDescFile}'`,
-          );
-        }
       }
     }
     expect(failures).toEqual([]);

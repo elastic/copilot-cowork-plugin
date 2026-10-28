@@ -71,7 +71,7 @@ export function readSkillFrontmatter(
  */
 export function readSkillName(skillMdPath: string): string {
   const fm = readSkillFrontmatter(skillMdPath);
-  if (!fm || typeof fm.name !== 'string' || fm.name.trim() === '') {
+  if (typeof fm.name !== 'string' || fm.name.trim() === '') {
     throw new Error(
       `SKILL.md has no 'name' field in frontmatter: ${skillMdPath}`,
     );
