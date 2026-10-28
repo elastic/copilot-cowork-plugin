@@ -8,7 +8,7 @@ metadata:
   annotations:
     backstage.io/source-location: 'url:https://github.com/elastic/copilot-cowork-plugin/'
     github.com/project-slug: 'elastic/copilot-cowork-plugin'
-    github.com/team-slug: 'elastic/search-eng'
+    github.com/team-slug: 'elastic/agent-skills-codeowners'
   tags:
     - javascript
 spec:
