@@ -147,6 +147,8 @@ jobs:
           git add appPackage/manifest.json CHANGELOG.md
           git commit -m "release: v${INPUT_VERSION}"
           git push origin "$branch"
+          # Pushes and PRs made with GITHUB_TOKEN don't trigger push/pull_request
+          # workflows; workflow_dispatch is the exception, so start CI explicitly.
           gh workflow run ci.yml --ref "$branch"
 
           gh pr create \

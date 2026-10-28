@@ -50,9 +50,11 @@ jobs:
 
           # Find bot-authored changelog commits for this PR that haven't been reverted yet
           reverted=false
-          for sha in $(git log --reverse --format='%H' origin/${{ github.base_ref }}..HEAD --grep="$commit_msg" --author="github-actions\[bot\]"); do
-            # Skip if a revert of this commit already exists
-            if git log --format='%s' origin/${{ github.base_ref }}..HEAD | grep -qF "Revert \"$commit_msg\""; then
+          for sha in $(git log --reverse --format='%H' origin/${{ github.base_ref }}..HEAD --grep="^$commit_msg" --author="github-actions\[bot\]"); do
+            # Skip if this specific commit was already reverted (git revert records
+            # "This reverts commit <sha>." in the body), so a label toggled
+            # on/off/on still reverts the newer entry.
+            if git log --format='%B' origin/${{ github.base_ref }}..HEAD | grep -qF "This reverts commit $sha."; then
               continue
             fi
             git revert --no-edit "$sha"

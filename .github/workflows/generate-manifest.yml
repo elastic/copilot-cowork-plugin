@@ -22,6 +22,7 @@ on:
     branches: [main]
     paths:
       - 'skills/**'
+      - 'scripts/build-package.ts' # INCLUDED_SKILLS lives here
 
 permissions:
   contents: write

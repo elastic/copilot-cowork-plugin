@@ -79,4 +79,6 @@ If you need to manually regenerate the `agentSkills` array in `appPackage/manife
 npm run build
 ```
 
-This requires Node.js 24+. CI also runs this automatically when `skills/` changes.
+This requires Node.js 24+. On PRs from branches of this repo, CI commits the regenerated
+manifest automatically when `skills/` or `scripts/build-package.ts` (which holds
+`INCLUDED_SKILLS`) changes. PRs from forks must commit the result of `npm run build` themselves.
