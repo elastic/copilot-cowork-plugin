@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (semver, e.g. 1.0.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-pr:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Validate version input
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if ! echo "$INPUT_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version '$INPUT_VERSION' is not valid semver (expected X.Y.Z)"
+            exit 1
+          fi
+          major=$(echo "$INPUT_VERSION" | cut -d. -f1)
+          if [ "$major" = "0" ]; then
+            echo "::error::Version '$INPUT_VERSION' starts with 0. manifest.version must be 1.0.0 or higher."
+            exit 1
+          fi
+
+      - name: Check version is a logical bump
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          current=$(git show origin/main:appPackage/manifest.json | jq -r '.version')
+          echo "Current version (main): $current"
+          echo "Target version:  $INPUT_VERSION"
+
+          IFS='.' read -r cur_major cur_minor cur_patch <<< "$current"
+          IFS='.' read -r new_major new_minor new_patch <<< "$INPUT_VERSION"
+
+          valid=false
+
+          # Major bump: X+1.0.0
+          if [ "$new_major" -eq $((cur_major + 1)) ] && [ "$new_minor" -eq 0 ] && [ "$new_patch" -eq 0 ]; then
+            valid=true
+          fi
+
+          # Minor bump: X.Y+1.0
+          if [ "$new_major" -eq "$cur_major" ] && [ "$new_minor" -eq $((cur_minor + 1)) ] && [ "$new_patch" -eq 0 ]; then
+            valid=true
+          fi
+
+          # Patch bump: X.Y.Z+1
+          if [ "$new_major" -eq "$cur_major" ] && [ "$new_minor" -eq "$cur_minor" ] && [ "$new_patch" -eq $((cur_patch + 1)) ]; then
+            valid=true
+          fi
+
+          if [ "$valid" != "true" ]; then
+            echo "::error::Version '$INPUT_VERSION' is not a single logical bump from '$current'. Expected one of: $cur_major.$cur_minor.$((cur_patch + 1)), $cur_major.$((cur_minor + 1)).0, or $((cur_major + 1)).0.0"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          tag="v${INPUT_VERSION}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "::error::Tag '$tag' already exists"
+            exit 1
+          fi
+
+      - name: Bump version in manifest.json
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          jq --arg v "$INPUT_VERSION" '.version = $v' appPackage/manifest.json > tmp.json
+          mv tmp.json appPackage/manifest.json
+
+      - name: Stamp changelog
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, re
+          from datetime import date
+
+          version = os.environ["INPUT_VERSION"]
+          today = date.today().isoformat()
+
+          with open("CHANGELOG.md", "r") as f:
+              content = f.read()
+
+          if "## [Unreleased]" not in content:
+              exit(0)
+
+          content = content.replace(
+              "## [Unreleased]",
+              f"## [Unreleased]\n\n## [{version}] - {today}",
+              1,
+          )
+
+          with open("CHANGELOG.md", "w") as f:
+              f.write(content)
+          PYEOF
+
+      - name: Create release branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          branch="automation/release-v${INPUT_VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add appPackage/manifest.json CHANGELOG.md
+          git commit -m "release: v${INPUT_VERSION}"
+          git push origin "$branch"
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "release: v${INPUT_VERSION}" \
+            --body "Automated release PR for v${INPUT_VERSION}. Merging this will tag the release and publish a GitHub Release with the packaged Cowork zip." \
+            --label "skip-changelog"

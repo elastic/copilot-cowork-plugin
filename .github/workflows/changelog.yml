@@ -1,0 +1,187 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  revert-changelog:
+    name: Revert Changelog Entry
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository
+      && contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Revert bot changelog commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          pr_number="${{ github.event.pull_request.number }}"
+          commit_msg="chore: add changelog entry for PR #${pr_number}"
+
+          # Find bot-authored changelog commits for this PR that haven't been reverted yet
+          reverted=false
+          for sha in $(git log --reverse --format='%H' origin/${{ github.base_ref }}..HEAD --grep="$commit_msg" --author="github-actions\[bot\]"); do
+            # Skip if a revert of this commit already exists
+            if git log --format='%s' origin/${{ github.base_ref }}..HEAD | grep -qF "Revert \"$commit_msg\""; then
+              continue
+            fi
+            git revert --no-edit "$sha"
+            reverted=true
+          done
+
+          if [ "$reverted" = true ]; then
+            git push
+          fi
+
+  ensure-changelog:
+    name: Ensure Changelog Entry
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || '' }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if CHANGELOG.md was modified
+        id: check
+        run: |
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- CHANGELOG.md)
+          if [ -n "$changed" ]; then
+            echo "modified=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "modified=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check if plugin-relevant files changed
+        id: plugin
+        run: |
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- \
+            'appPackage/manifest.json' \
+            'skills/**')
+          if [ -n "$changed" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect skill changes
+        id: skills
+        if: >-
+          github.event.pull_request.head.repo.full_name == github.repository
+          && steps.check.outputs.modified == 'false'
+          && steps.plugin.outputs.changed == 'true'
+        run: |
+          added=$(git diff --name-only --diff-filter=A origin/${{ github.base_ref }}...HEAD -- 'skills/**/SKILL.md' \
+            | sed 's|skills/||; s|/SKILL.md||' | sort | jq -R . | jq -sc .)
+          removed=$(git diff --name-only --diff-filter=D origin/${{ github.base_ref }}...HEAD -- 'skills/**/SKILL.md' \
+            | sed 's|skills/||; s|/SKILL.md||' | sort | jq -R . | jq -sc .)
+          echo "added=$added" >> "$GITHUB_OUTPUT"
+          echo "removed=$removed" >> "$GITHUB_OUTPUT"
+
+      - name: Add changelog entry
+        if: >-
+          github.event.pull_request.head.repo.full_name == github.repository
+          && steps.check.outputs.modified == 'false'
+          && steps.plugin.outputs.changed == 'true'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SKILLS_ADDED: ${{ steps.skills.outputs.added }}
+          SKILLS_REMOVED: ${{ steps.skills.outputs.removed }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, json
+
+          title = os.environ["PR_TITLE"]
+          number = os.environ["PR_NUMBER"]
+          added = json.loads(os.environ.get("SKILLS_ADDED") or "[]")
+          removed = json.loads(os.environ.get("SKILLS_REMOVED") or "[]")
+
+          lines = [f"- {title} (#{number})"]
+          if added:
+              lines.append("  - Skills added: " + ", ".join(f"`{s}`" for s in added))
+          if removed:
+              lines.append("  - Skills removed: " + ", ".join(f"`{s}`" for s in removed))
+          entry = "\n".join(lines)
+
+          with open("CHANGELOG.md", "r") as f:
+              content = f.read()
+
+          if "## [Unreleased]" in content:
+              unreleased_match = re.search(r"(## \[Unreleased\].*?\n)", content)
+              insert_pos = unreleased_match.end()
+
+              rest = content[insert_pos:]
+              next_section = re.search(r"\n## \[", rest)
+              unreleased_block = rest[:next_section.start()] if next_section else rest
+
+              if "### Added" in unreleased_block:
+                  added_offset = unreleased_block.index("### Added")
+                  abs_pos = insert_pos + added_offset + len("### Added")
+                  while abs_pos < len(content) and content[abs_pos] == "\n":
+                      abs_pos += 1
+                  content = content[:abs_pos] + entry + "\n" + content[abs_pos:]
+              else:
+                  content = content[:insert_pos] + f"\n### Added\n\n{entry}\n" + content[insert_pos:]
+          else:
+              header_match = re.search(r"(# Changelog.*?\n)", content)
+              if header_match:
+                  insert_pos = header_match.end()
+                  content = content[:insert_pos] + f"\n## [Unreleased]\n\n### Added\n\n{entry}\n" + content[insert_pos:]
+              else:
+                  content = f"# Changelog\n\n## [Unreleased]\n\n### Added\n\n{entry}\n\n" + content
+
+          with open("CHANGELOG.md", "w") as f:
+              f.write(content)
+          PYEOF
+
+      - name: Commit and push changelog update
+        if: >-
+          github.event.pull_request.head.repo.full_name == github.repository
+          && steps.check.outputs.modified == 'false'
+          && steps.plugin.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: add changelog entry for PR #${{ github.event.pull_request.number }}"
+          git push
+
+      - name: Validate changelog entry for fork PRs
+        if: >-
+          github.event.pull_request.head.repo.full_name != github.repository
+          && steps.plugin.outputs.changed == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Extract the [Unreleased] section from CHANGELOG.md
+          unreleased=$(sed -n '/^## \[Unreleased\]/,/^## \[/p' CHANGELOG.md | head -n -1)
+
+          if ! echo "$unreleased" | grep -qF "(#${PR_NUMBER})"; then
+            echo "::error::CHANGELOG.md is missing an entry for this PR in the [Unreleased] section."
+            echo ""
+            echo "For branches on this repo, a changelog entry is auto-generated."
+            echo "Since this PR is from a fork, please add an entry manually:"
+            echo ""
+            echo "  1. Add a line under the '## [Unreleased]' > '### Added' section in CHANGELOG.md:"
+            echo "     - Your PR title (#${PR_NUMBER})"
+            echo ""
+            echo "  Alternatively, add the 'skip-changelog' label if no entry is needed."
+            exit 1
+          fi
