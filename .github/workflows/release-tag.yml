@@ -6,13 +6,12 @@ on:
     paths:
       - 'appPackage/manifest.json'
 
-permissions:
-  contents: write
-
 jobs:
   check:
     name: Check Version Bump
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       is_release: ${{ steps.check.outputs.is_release }}
       version: ${{ steps.check.outputs.version }}
@@ -24,10 +23,21 @@ jobs:
 
       - name: Detect version bump
         id: check
+        env:
+          BEFORE: ${{ github.event.before }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           version=$(jq -r '.version' appPackage/manifest.json)
-          prev_version=$(git show HEAD^1:appPackage/manifest.json | jq -r '.version')
           tag="v${version}"
+
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "New branch push; cannot compare versions."
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          prev_version=$(git show "${BEFORE}:appPackage/manifest.json" | jq -r '.version')
 
           echo "Previous version: $prev_version"
           echo "Current version:  $version"
@@ -35,8 +45,8 @@ jobs:
           if [ "$version" = "$prev_version" ]; then
             echo "Version unchanged ($version); not a release commit."
             echo "is_release=false" >> "$GITHUB_OUTPUT"
-          elif git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Tag '$tag' already exists; skipping."
+          elif gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release '$tag' already exists; skipping."
             echo "is_release=false" >> "$GITHUB_OUTPUT"
           else
             echo "Version bumped $prev_version → $version; proceeding with release."
@@ -52,6 +62,8 @@ jobs:
     needs: check
     if: needs.check.outputs.is_release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       ATK_TELEMETRY: false
     steps:
@@ -59,60 +71,48 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Install atk CLI
+        run: npm install -g @microsoft/m365agentstoolkit-cli@1.1.18
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate manifest
+        run: atk validate --manifest-file ./appPackage/manifest.json
+
+      - name: Package
+        run: atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build
+
+      - name: Rename package
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: mv appPackage/build/appPackage.dev.zip "elastic-copilot-cowork-${VERSION}.zip"
+
       - name: Create git tag
         env:
           TAG: ${{ needs.check.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
-
-      - name: Check if release already exists
-        id: release-check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.check.outputs.tag }}
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        if: steps.release-check.outputs.exists == 'false'
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Install dependencies
-        if: steps.release-check.outputs.exists == 'false'
-        run: npm ci
-
-      - name: Install atk CLI
-        if: steps.release-check.outputs.exists == 'false'
-        run: npm install -g @microsoft/m365agentstoolkit-cli@1.1.18
-
-      - name: Build
-        if: steps.release-check.outputs.exists == 'false'
-        run: npm run build
-
-      - name: Validate manifest
-        if: steps.release-check.outputs.exists == 'false'
-        run: atk validate --manifest-file ./appPackage/manifest.json
-
-      - name: Package
-        if: steps.release-check.outputs.exists == 'false'
-        run: atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build
-
-      - name: Rename package
-        if: steps.release-check.outputs.exists == 'false'
-        env:
-          VERSION: ${{ needs.check.outputs.version }}
-        run: mv appPackage/build/appPackage.dev.zip "elastic-copilot-cowork-${VERSION}.zip"
+          git rev-parse "$TAG" >/dev/null 2>&1 || {
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          }
 
       - name: Create GitHub Release
-        if: steps.release-check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.check.outputs.tag }}

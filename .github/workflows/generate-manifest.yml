@@ -1,0 +1,66 @@
+name: Generate manifest skills list
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'skills/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate:
+    name: Update manifest agentSkills array
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || '' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (regenerate agentSkills)
+        run: npm run build
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet appPackage/manifest.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit updated manifest
+        if: >-
+          github.event.pull_request.head.repo.full_name == github.repository
+          && steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appPackage/manifest.json
+          git commit -m "chore: regenerate manifest agentSkills list"
+          git push
+
+      - name: Require up-to-date manifest for fork PRs
+        if: >-
+          github.event.pull_request.head.repo.full_name != github.repository
+          && steps.diff.outputs.changed == 'true'
+        run: |
+          echo "::error::The agentSkills array in appPackage/manifest.json is out of date."
+          echo ""
+          echo "For branches on this repo, manifest.json is auto-updated."
+          echo "Since this PR is from a fork, please regenerate it manually:"
+          echo ""
+          echo "  npm run build"
+          echo ""
+          echo "Then commit the updated appPackage/manifest.json."
+          exit 1
