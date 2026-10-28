@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["local>elastic/renovate-config"],
+  "labels": ["skip-changelog"],
+  "automergeStrategy": "squash",
+  "automergeType": "pr",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch", "minor", "pin", "digest"],
+      "addLabels": ["renovate-auto-approve"],
+      "automerge": true
+    },
+    {
+      "description": "ts-jest requires typescript <7; remove this rule once ts-jest supports TS7",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    }
+  ]
+}
