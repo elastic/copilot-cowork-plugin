@@ -50,4 +50,3 @@ publish:
     writeToEnvironmentFile:
       titleId: M365_PUBLISHED_TITLE_ID
       appId: M365_PUBLISHED_APP_ID
-

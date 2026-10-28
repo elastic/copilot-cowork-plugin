@@ -1,0 +1,7 @@
+skills/
+appPackage/skills/
+appPackage/build/
+node_modules/
+package-lock.json
+CHANGELOG.md
+.superpowers/

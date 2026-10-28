@@ -51,8 +51,6 @@ Per-skill limits: ≤ 20 companion files, ≤ 5 MB per file, ≤ 10 MB total, no
 (`https://www.elastic.co/docs/_mcp/`, no auth). Cowork discovers its tools live from the server,
 so no `mcpToolDescription` file is shipped (optional at manifest v1.29; only v1.28 requires it).
 
-
-
 ## Validate and package
 
 Requires `@microsoft/m365agentstoolkit-cli` (`atk`) ≥ 1.1.12.

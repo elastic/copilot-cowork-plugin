@@ -23,23 +23,57 @@
   },
   "accentColor": "#0B64DD",
   "agentSkills": [
-    { "folder": "./skills/cloud-onboarding" },
-    { "folder": "./skills/cloud-provisioning" },
-    { "folder": "./skills/elasticsearch-anomaly-detection" },
-    { "folder": "./skills/elasticsearch-anomaly-detection-explainer" },
-    { "folder": "./skills/elasticsearch-cluster-health" },
-    { "folder": "./skills/elasticsearch-esql" },
-    { "folder": "./skills/elasticsearch-index-design" },
-    { "folder": "./skills/elasticsearch-ingest" },
-    { "folder": "./skills/elasticsearch-onboarding" },
-    { "folder": "./skills/elasticsearch-query-optimization" },
-    { "folder": "./skills/elasticsearch-reindex" },
-    { "folder": "./skills/elasticsearch-search-relevance" },
-    { "folder": "./skills/kibana-agent-builder" },
-    { "folder": "./skills/kibana-alerting-rules" },
-    { "folder": "./skills/kibana-anomaly-detection" },
-    { "folder": "./skills/kibana-dashboards" },
-    { "folder": "./skills/kibana-workflows" }
+    {
+      "folder": "./skills/cloud-onboarding"
+    },
+    {
+      "folder": "./skills/cloud-provisioning"
+    },
+    {
+      "folder": "./skills/elasticsearch-anomaly-detection"
+    },
+    {
+      "folder": "./skills/elasticsearch-anomaly-detection-explainer"
+    },
+    {
+      "folder": "./skills/elasticsearch-cluster-health"
+    },
+    {
+      "folder": "./skills/elasticsearch-esql"
+    },
+    {
+      "folder": "./skills/elasticsearch-index-design"
+    },
+    {
+      "folder": "./skills/elasticsearch-ingest"
+    },
+    {
+      "folder": "./skills/elasticsearch-onboarding"
+    },
+    {
+      "folder": "./skills/elasticsearch-query-optimization"
+    },
+    {
+      "folder": "./skills/elasticsearch-reindex"
+    },
+    {
+      "folder": "./skills/elasticsearch-search-relevance"
+    },
+    {
+      "folder": "./skills/kibana-agent-builder"
+    },
+    {
+      "folder": "./skills/kibana-alerting-rules"
+    },
+    {
+      "folder": "./skills/kibana-anomaly-detection"
+    },
+    {
+      "folder": "./skills/kibana-dashboards"
+    },
+    {
+      "folder": "./skills/kibana-workflows"
+    }
   ],
   "agentConnectors": [
     {
