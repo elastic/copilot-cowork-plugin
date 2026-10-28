@@ -34,6 +34,7 @@ import {
   buildPackage,
   readSkillName,
   CATEGORIES,
+  INCLUDED_SKILLS,
 } from '../scripts/build-package';
 
 function makeFixture(opts: {
@@ -80,7 +81,11 @@ describe('buildPackage', () => {
         'skills/cloud/onboarding/references/a.md': '# ref a',
       },
     });
-    buildPackage({ root, categories: ['cloud'] });
+    buildPackage({
+      root,
+      categories: ['cloud'],
+      includedSkills: ['cloud-onboarding'],
+    });
     expect(
       existsSync(join(root, 'appPackage/skills/cloud-onboarding/SKILL.md')),
     ).toBe(true);
@@ -101,8 +106,10 @@ describe('buildPackage', () => {
     const result = buildPackage({
       root,
       categories: ['cloud', 'elasticsearch', 'kibana'],
+      includedSkills: ['cloud-onboarding'],
     });
-    expect(result.find((s) => s.name === 'security-x')).toBeUndefined();
+    expect(result.skills.find((s) => s.name === 'security-x')).toBeUndefined();
+    expect(result.unlisted).toEqual([]);
     const outSkills = readdirSync(join(root, 'appPackage/skills'));
     expect(outSkills).not.toContain('security-x');
     expect(outSkills).toContain('cloud-onboarding');
@@ -115,7 +122,11 @@ describe('buildPackage', () => {
         'skills/cloud/a/SKILL.md': skillMd('a-skill'),
       },
     });
-    buildPackage({ root, categories: ['cloud'] });
+    buildPackage({
+      root,
+      categories: ['cloud'],
+      includedSkills: ['a-skill', 'b-skill'],
+    });
     const manifest = JSON.parse(
       readFileSync(join(root, 'appPackage/manifest.json'), 'utf-8'),
     );
@@ -135,14 +146,22 @@ describe('buildPackage', () => {
       },
     });
     expect(() =>
-      buildPackage({ root, categories: ['cloud', 'elasticsearch'] }),
+      buildPackage({
+        root,
+        categories: ['cloud', 'elasticsearch'],
+        includedSkills: ['same-name'],
+      }),
     ).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('skills/cloud/foo'),
       }),
     );
     expect(() =>
-      buildPackage({ root, categories: ['cloud', 'elasticsearch'] }),
+      buildPackage({
+        root,
+        categories: ['cloud', 'elasticsearch'],
+        includedSkills: ['same-name'],
+      }),
     ).toThrow(
       expect.objectContaining({
         message: expect.stringContaining('skills/elasticsearch/bar'),
@@ -158,7 +177,9 @@ describe('buildPackage', () => {
       },
     });
     const skillMdPath = join(root, 'skills/cloud/unnamed/SKILL.md');
-    expect(() => buildPackage({ root, categories: ['cloud'] })).toThrow(
+    expect(() =>
+      buildPackage({ root, categories: ['cloud'], includedSkills: [] }),
+    ).toThrow(
       expect.objectContaining({
         message: expect.stringContaining(skillMdPath),
       }),
@@ -173,8 +194,12 @@ describe('buildPackage', () => {
       },
     });
     // Should not throw; empty-dir has no SKILL.md
-    const result = buildPackage({ root, categories: ['cloud'] });
-    expect(result.map((s) => s.name)).toEqual(['cloud-onboarding']);
+    const result = buildPackage({
+      root,
+      categories: ['cloud'],
+      includedSkills: ['cloud-onboarding'],
+    });
+    expect(result.skills.map((s) => s.name)).toEqual(['cloud-onboarding']);
     expect(existsSync(join(root, 'appPackage/skills/empty-dir'))).toBe(false);
   });
 
@@ -186,8 +211,12 @@ describe('buildPackage', () => {
         'skills/cloud/crlf/SKILL.md': crlfBomContent,
       },
     });
-    const result = buildPackage({ root, categories: ['cloud'] });
-    expect(result[0].name).toBe('cloud-crlf');
+    const result = buildPackage({
+      root,
+      categories: ['cloud'],
+      includedSkills: ['cloud-crlf'],
+    });
+    expect(result.skills[0].name).toBe('cloud-crlf');
     expect(
       existsSync(join(root, 'appPackage/skills/cloud-crlf/SKILL.md')),
     ).toBe(true);
@@ -202,7 +231,13 @@ describe('buildPackage', () => {
     });
     const symlinkPath = join(root, 'skills/cloud/linked/link.md');
     symlinkSync(join(root, 'skills/cloud/linked/real-file.md'), symlinkPath);
-    expect(() => buildPackage({ root, categories: ['cloud'] })).toThrow(
+    expect(() =>
+      buildPackage({
+        root,
+        categories: ['cloud'],
+        includedSkills: ['cloud-linked'],
+      }),
+    ).toThrow(
       expect.objectContaining({
         message: expect.stringContaining(symlinkPath),
       }),
@@ -221,14 +256,18 @@ describe('buildPackage', () => {
       join(root, 'appPackage/skills/stale-skill/SKILL.md'),
       skillMd('stale-skill'),
     );
-    buildPackage({ root, categories: ['cloud'] });
+    buildPackage({
+      root,
+      categories: ['cloud'],
+      includedSkills: ['cloud-onboarding'],
+    });
     expect(existsSync(join(root, 'appPackage/skills/stale-skill'))).toBe(false);
     expect(
       existsSync(join(root, 'appPackage/skills/cloud-onboarding/SKILL.md')),
     ).toBe(true);
   });
 
-  it('excludedSkills: excluded skill absent from appPackage/skills and agentSkills[]', () => {
+  it('skips skills not in the allow-list and reports them as unlisted', () => {
     const root = makeFixture({
       skills: {
         'skills/cloud/a/SKILL.md': skillMd('cloud-a'),
@@ -238,15 +277,42 @@ describe('buildPackage', () => {
     const result = buildPackage({
       root,
       categories: ['cloud'],
-      excludedSkills: ['cloud-b'],
+      includedSkills: ['cloud-a'],
     });
-    expect(result.find((s) => s.name === 'cloud-b')).toBeUndefined();
+    expect(result.skills.map((s) => s.name)).toEqual(['cloud-a']);
+    expect(result.unlisted).toEqual([
+      { name: 'cloud-b', source: 'skills/cloud/b' },
+    ]);
     expect(existsSync(join(root, 'appPackage/skills/cloud-b'))).toBe(false);
     expect(existsSync(join(root, 'appPackage/skills/cloud-a'))).toBe(true);
     const manifest = JSON.parse(
       readFileSync(join(root, 'appPackage/manifest.json'), 'utf-8'),
     );
     expect(manifest.agentSkills).toEqual([{ folder: './skills/cloud-a' }]);
+  });
+
+  it('throws when an allow-listed skill is missing from the source tree', () => {
+    const root = makeFixture({
+      skills: {
+        'skills/cloud/a/SKILL.md': skillMd('cloud-a'),
+      },
+    });
+    expect(() =>
+      buildPackage({
+        root,
+        categories: ['cloud'],
+        includedSkills: ['cloud-a', 'cloud-renamed'],
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('cloud-renamed'),
+      }),
+    );
+  });
+
+  it('INCLUDED_SKILLS is unique and within the 20-skill Cowork cap', () => {
+    expect(new Set(INCLUDED_SKILLS).size).toBe(INCLUDED_SKILLS.length);
+    expect(INCLUDED_SKILLS.length).toBeLessThanOrEqual(20);
   });
 });
 

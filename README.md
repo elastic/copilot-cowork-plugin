@@ -45,18 +45,16 @@ Don't edit files under `appPackage/skills/` or `skills/` by hand; fix skills ups
 
 Per-skill limits: ≤ 20 companion files, ≤ 5 MB per file, ≤ 10 MB total, no hidden files.
 
-### Excluding a skill
+### Choosing which skills ship
 
-If the 20-skill Cowork cap is reached or a skill is broken in Cowork, add its
-frontmatter `name` value to `EXCLUDED_SKILLS` in `scripts/build-package.ts`:
+Only skills listed in `INCLUDED_SKILLS` in `scripts/build-package.ts` (by frontmatter `name`)
+are packaged. New skills that arrive via the agent-skills sync are **not** shipped until someone
+adds them deliberately; `npm run build` lists them under "Not in INCLUDED_SKILLS, skipped". To
+ship one, add its name to `INCLUDED_SKILLS` (staying within the 20-skill cap) and rebuild. To
+drop one, remove its name.
 
-```ts
-export const EXCLUDED_SKILLS: readonly string[] = ['skill-name-to-skip'];
-```
-
-The excluded skill is omitted from `appPackage/skills/` and from `agentSkills[]` in
-`manifest.json` on the next `npm run build`. Remove the entry once the issue is resolved
-upstream.
+If an allow-listed skill disappears from `skills/` (renamed or removed upstream), the build fails
+so the change is handled on purpose rather than silently.
 
 ## MCP server
 

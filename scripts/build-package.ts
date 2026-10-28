@@ -38,26 +38,51 @@ export const CATEGORIES: readonly string[] = [
 ];
 
 /**
- * Frontmatter names of skills to omit from the built package.
- * Use this when the 20-skill Cowork cap is hit or a skill is broken in Cowork.
- * Add the skill's `name` frontmatter value to exclude it from both
- * `appPackage/skills/` and the `agentSkills[]` array in `manifest.json`.
+ * Frontmatter names of the skills that ship in the package (allow-list).
+ * Skills synced from agent-skills but not listed here are left out, so new
+ * upstream skills are only shipped after a deliberate addition. Cowork caps
+ * `agentSkills` at 20. Every name listed must exist in the source tree.
  */
-export const EXCLUDED_SKILLS: readonly string[] = [];
+export const INCLUDED_SKILLS: readonly string[] = [
+  'cloud-onboarding',
+  'cloud-provisioning',
+  'elasticsearch-anomaly-detection',
+  'elasticsearch-anomaly-detection-explainer',
+  'elasticsearch-cluster-health',
+  'elasticsearch-esql',
+  'elasticsearch-index-design',
+  'elasticsearch-ingest',
+  'elasticsearch-onboarding',
+  'elasticsearch-query-optimization',
+  'elasticsearch-reindex',
+  'elasticsearch-search-relevance',
+  'kibana-agent-builder',
+  'kibana-alerting-rules',
+  'kibana-anomaly-detection',
+  'kibana-dashboards',
+  'kibana-workflows',
+];
 
 export interface BuildOptions {
   root: string;
   categories?: readonly string[];
   /**
-   * Frontmatter names of skills to exclude from the build.
-   * Defaults to `EXCLUDED_SKILLS`.
+   * Frontmatter names of skills to include in the build.
+   * Defaults to `INCLUDED_SKILLS`.
    */
-  excludedSkills?: readonly string[];
+  includedSkills?: readonly string[];
 }
 
 export interface BuiltSkill {
   name: string;
   source: string; // e.g. 'skills/cloud/onboarding'
+}
+
+export interface BuildResult {
+  /** Skills copied into the package, sorted by name. */
+  skills: BuiltSkill[];
+  /** Skills found in the source tree but not in the allow-list, sorted by name. */
+  unlisted: BuiltSkill[];
 }
 
 /**
@@ -110,18 +135,20 @@ function assertNoSymlinks(dir: string): void {
 
 /**
  * Build the appPackage skills output from the nested skills/ source tree.
- * Returns a list of BuiltSkill objects, sorted by name.
+ * Only allow-listed skills are copied; throws if an allow-listed skill is
+ * missing from the source tree.
  */
-export function buildPackage(opts: BuildOptions): BuiltSkill[] {
+export function buildPackage(opts: BuildOptions): BuildResult {
   const { root } = opts;
   const categories = opts.categories ?? CATEGORIES;
-  const excludedSkills = opts.excludedSkills ?? EXCLUDED_SKILLS;
+  const includedSkills = opts.includedSkills ?? INCLUDED_SKILLS;
   const skillsRoot = join(root, 'skills');
   const outRoot = join(root, 'appPackage', 'skills');
   const manifestPath = join(root, 'appPackage', 'manifest.json');
 
   // Collect all skills from source tree
   const builtSkills: BuiltSkill[] = [];
+  const unlisted: BuiltSkill[] = [];
   const nameToSource = new Map<string, string>();
 
   for (const category of categories) {
@@ -139,7 +166,6 @@ export function buildPackage(opts: BuildOptions): BuiltSkill[] {
       assertNoSymlinks(skillDir);
 
       const name = readSkillName(skillMdPath);
-      if (excludedSkills.includes(name)) continue;
       const source = relative(root, skillDir).replace(/\\/g, '/');
 
       // Check for duplicate names
@@ -149,12 +175,24 @@ export function buildPackage(opts: BuildOptions): BuiltSkill[] {
         );
       }
       nameToSource.set(name, source);
-      builtSkills.push({ name, source });
+      (includedSkills.includes(name) ? builtSkills : unlisted).push({
+        name,
+        source,
+      });
     }
+  }
+
+  // Every allow-listed skill must exist (catches upstream renames/removals)
+  const missing = includedSkills.filter((name) => !nameToSource.has(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `Allow-listed skills not found in ${categories.map((c) => `skills/${c}`).join(', ')}: ${missing.join(', ')}`,
+    );
   }
 
   // Sort by name
   builtSkills.sort((a, b) => a.name.localeCompare(b.name));
+  unlisted.sort((a, b) => a.name.localeCompare(b.name));
 
   // Remove stale output
   if (existsSync(outRoot)) {
@@ -179,7 +217,7 @@ export function buildPackage(opts: BuildOptions): BuiltSkill[] {
   }));
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 
-  return builtSkills;
+  return { skills: builtSkills, unlisted };
 }
 
 // Run as script
@@ -189,8 +227,16 @@ const isMain =
 
 if (isMain) {
   const repoRoot = fileURLToPath(new URL('..', import.meta.url));
-  const skills = buildPackage({ root: repoRoot });
+  const { skills, unlisted } = buildPackage({ root: repoRoot });
   for (const skill of skills) {
     console.log(`${skill.name}  (${skill.source})`);
+  }
+  if (unlisted.length > 0) {
+    console.log(
+      `\nNot in INCLUDED_SKILLS, skipped (add to scripts/build-package.ts to ship):`,
+    );
+    for (const skill of unlisted) {
+      console.log(`  ${skill.name}  (${skill.source})`);
+    }
   }
 }
