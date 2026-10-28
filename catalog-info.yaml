@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: copilot-cowork-plugin
+  description: "Elastic's official Microsoft 365 Copilot Cowork plugin — agent skills and the Elastic Docs MCP server"
+  annotations:
+    backstage.io/source-location: 'url:https://github.com/elastic/copilot-cowork-plugin/'
+    github.com/project-slug: 'elastic/copilot-cowork-plugin'
+    github.com/team-slug: 'elastic/search-eng'
+  tags:
+    - javascript
+spec:
+  type: other
+  lifecycle: experimental
+  owner: group:agent-skills-codeowners
