@@ -7,8 +7,8 @@
     "pretest": "npm run build",
     "package": "npm run build && atk validate --manifest-file ./appPackage/manifest.json && atk package --manifest-file ./appPackage/manifest.json --output-package-file ./appPackage/build/appPackage.dev.zip --output-folder ./appPackage/build",
     "test": "node --experimental-vm-modules --no-warnings node_modules/.bin/jest",
-    "lint": "eslint . && prettier --check .",
-    "format": "prettier --write ."
+    "lint": "eslint . && prettier --check . && node scripts/check-license-headers.ts",
+    "format": "prettier --write . && node scripts/check-license-headers.ts --fix"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -38,7 +38,8 @@ npm run package   # build + offline atk validate + zip -> appPackage/build/appPa
 ## Code style
 
 - TypeScript (ESM) for build scripts in `scripts/`, Jest tests in `tests/`. Keep Prettier and
-  ESLint clean; new source files carry the Apache 2.0 license header.
+  ESLint clean. Source files (JS/TS, workflow YAML, shell) start with the Apache 2.0 header
+  in `scripts/license-header.txt` (`npm run lint` checks it; `npm run format` adds it).
 - Any new Cowork packaging limit gets a check in `tests/package-invariants.test.ts`.
 
 ## Git and GitHub
