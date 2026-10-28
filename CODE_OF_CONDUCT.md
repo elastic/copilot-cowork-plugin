@@ -1,3 +1,3 @@
-# Code of Conduct
+303 See Other
 
-This project follows the [Elastic Community Code of Conduct](https://www.elastic.co/community/codeofconduct).
+Location: https://www.elastic.co/community/codeofconduct
