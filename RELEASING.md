@@ -31,8 +31,10 @@ from `version` and is not bumped during a release.
 
 ## Changelog
 
-The release workflow stamps `[Unreleased]` with the version and date, and adds a
-new, empty, `[Unreleased]` section.
+The release workflow inserts `## [{version}] - {date}` immediately below the
+existing `## [Unreleased]` heading. The `[Unreleased]` heading stays in place;
+entries accumulated there since the previous release become the body of the new
+versioned section.
 
 ## Manual pre-submission checklist
 

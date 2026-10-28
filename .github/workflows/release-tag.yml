@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   check:
-    name: Check Release Commit
+    name: Check Version Bump
     runs-on: ubuntu-latest
     outputs:
       is_release: ${{ steps.check.outputs.is_release }}
@@ -19,19 +19,32 @@ jobs:
       tag: ${{ steps.check.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
-      - name: Check commit and extract version
+      - name: Detect version bump
         id: check
         run: |
-          msg=$(git log -1 --format='%s')
-          if echo "$msg" | grep -qE '^release: v'; then
-            echo "is_release=true" >> "$GITHUB_OUTPUT"
-            version=$(jq -r '.version' appPackage/manifest.json)
-            echo "version=$version" >> "$GITHUB_OUTPUT"
-            echo "tag=v${version}" >> "$GITHUB_OUTPUT"
-          else
+          version=$(jq -r '.version' appPackage/manifest.json)
+          prev_version=$(git show HEAD^1:appPackage/manifest.json | jq -r '.version')
+          tag="v${version}"
+
+          echo "Previous version: $prev_version"
+          echo "Current version:  $version"
+
+          if [ "$version" = "$prev_version" ]; then
+            echo "Version unchanged ($version); not a release commit."
             echo "is_release=false" >> "$GITHUB_OUTPUT"
-            echo "Commit '$msg' is not a release commit; skipping tag and release."
+          elif git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag '$tag' already exists; skipping."
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version bumped $prev_version → $version; proceeding with release."
+            {
+              echo "is_release=true"
+              echo "version=$version"
+              echo "tag=$tag"
+            } >> "$GITHUB_OUTPUT"
           fi
 
   tag:
@@ -46,19 +59,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if tag already exists
-        id: tag-check
-        env:
-          TAG: ${{ needs.check.outputs.tag }}
-        run: |
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Create git tag
-        if: steps.tag-check.outputs.exists == 'false'
         env:
           TAG: ${{ needs.check.outputs.tag }}
         run: |
