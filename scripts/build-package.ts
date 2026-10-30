@@ -59,6 +59,8 @@ export const INCLUDED_SKILLS: readonly string[] = [
   'kibana-agent-builder',
   'kibana-alerting-rules',
   'kibana-anomaly-detection',
+  'kibana-cases',
+  'kibana-context-engine',
   'kibana-dashboards',
   'kibana-workflows',
 ];
