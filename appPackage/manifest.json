@@ -69,6 +69,12 @@
       "folder": "./skills/kibana-anomaly-detection"
     },
     {
+      "folder": "./skills/kibana-cases"
+    },
+    {
+      "folder": "./skills/kibana-context-engine"
+    },
+    {
       "folder": "./skills/kibana-dashboards"
     },
     {
