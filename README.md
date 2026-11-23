@@ -86,8 +86,8 @@ You need a Microsoft 365 Copilot license with Cowork enabled; open
 ([get started](https://learn.microsoft.com/en-us/copilot/cowork/get-started)).
 
 Simplest path, no CLI ([Customize Cowork](https://learn.microsoft.com/en-us/copilot/cowork/cowork-customize)):
-**Customize → Plugins → Upload plugin**, pick `appPackage/build/appPackage.dev.zip`, share with
-**Only you**. Verify under **Customize → Plugins → Installed**, then start a new conversation;
+**Plugins → Cowork → Add → Upload**, pick `appPackage/build/appPackage.dev.zip`, share with
+**Only you**. Verify under **Plugins → Cowork → Added**, then start a new conversation;
 active plugin skills appear as chips in the side panel. Remove via the plugin's
 **Remove from Cowork**.
 
