@@ -4,6 +4,10 @@ All notable changes to this plugin are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- chore: sync agent-skills 0.8.0 (#28)
+
 ## [1.0.1] - 2026-11-11
 
 ### Added
